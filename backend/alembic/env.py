@@ -9,8 +9,8 @@ from app.config import settings
 from sqlmodel import SQLModel
 
 # Import your models here so Alembic can detect them.
-# We'll uncomment these as we add models.
-# from app.models import user, category, transaction, budget
+# As we add more models, import them here too.
+from app.models.user import User  # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
