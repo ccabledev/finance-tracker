@@ -6,6 +6,7 @@ import { z } from "zod";
 import axios from "axios";
 
 import { api } from "../lib/api";
+import { useAuth } from "../context/AuthContext";
 
 const loginSchema = z.object({
     email: z.string().email("Please enter a valid email."),
@@ -16,7 +17,12 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 function Login() {
     const navigate = useNavigate();
+    const { login } = useAuth();
     const [serverError, setServerError] = useState<string | null>(null);
+
+    const auth = useAuth();
+    console.log(auth);
+
 
     const {
         register,
@@ -30,7 +36,7 @@ function Login() {
         setServerError(null);
         try {
             const response = await api.post("/auth/login", values);
-            localStorage.setItem("access_token", response.data.access_token);
+            await login(response.data.access_token);
             navigate("/");
         } catch (err) {
             if (axios.isAxiosError(err) && err.response?.status === 401) {
@@ -40,6 +46,7 @@ function Login() {
             }
         }
     };
+
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-100">
