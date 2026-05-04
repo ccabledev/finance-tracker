@@ -37,7 +37,7 @@ function Login() {
         try {
             const response = await api.post("/auth/login", values);
             await login(response.data.access_token);
-            navigate("/");
+            navigate("/dashboard");
         } catch (err) {
             if (axios.isAxiosError(err) && err.response?.status === 401) {
                 setServerError("Invalid email or password.");
