@@ -12,6 +12,8 @@ from sqlmodel import SQLModel
 # As we add more models, import them here too.
 from app.models.user import User  # noqa: F401
 
+from app.models.category import Category  # noqa: F401
+
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
