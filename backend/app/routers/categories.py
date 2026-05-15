@@ -66,4 +66,25 @@ def update_category(
             detail="Category not found.",
         )
 
-    return category  # placeholder — we'll add the real update logic next step
+    update_data = payload.model_dump(exclude_unset=True)
+
+    if "name" in update_data and update_data["name"] != category.name:
+        existing = session.exec(
+            select(Category).where(
+                Category.user_id == current_user.id,
+                Category.name == update_data["name"],
+            )
+        ).first()
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="A category with this name already exists.",
+            )
+
+    for key, value in update_data.items():
+        setattr(category, key, value)
+
+    session.add(category)
+    session.commit()
+    session.refresh(category)
+    return category
