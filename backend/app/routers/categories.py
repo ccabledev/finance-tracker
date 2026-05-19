@@ -88,3 +88,19 @@ def update_category(
     session.commit()
     session.refresh(category)
     return category
+
+@router.delete("/{category_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_category(
+    category_id: int,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+) -> None:
+    category = session.get(Category, category_id)
+    if not category or category.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Category not found.",
+        )
+
+    session.delete(category)
+    session.commit()
