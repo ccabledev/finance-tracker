@@ -2,7 +2,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 
 type Category = {
@@ -33,12 +33,26 @@ function Categories() {
         register,
         handleSubmit,
         formState: { errors, isSubmitting },
+        reset,
     } = useForm<CategoryFormValues>({
         resolver: zodResolver(categorySchema),
     });
 
+    const queryClient = useQueryClient();
+
+    const createMutation = useMutation({
+        mutationFn: async (values: CategoryFormValues) => {
+            const response = await api.post("/categories/", values);
+            return response.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["categories"] });
+            reset();
+        },
+    });
+
     const onSubmit = (values: CategoryFormValues) => {
-        console.log("submitted:", values);
+        createMutation.mutate(values);
     };
 
     return (
@@ -76,10 +90,10 @@ function Categories() {
                 </div>
                 <button
                     type="submit"
-                    disabled={isSubmitting}
+                    disabled={createMutation.isPending}
                     className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-blue-400"
                 >
-                    Add
+                    {createMutation.isPending ? "Adding..." : "Add"}
                 </button>
             </form>
 
