@@ -5,6 +5,9 @@ import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 
+import { useState } from "react";
+import axios from "axios";
+
 type Category = {
     id: number;
     name: string;
@@ -29,6 +32,8 @@ function Categories() {
         },
     });
 
+    const [serverError, setServerError] = useState<string | null>(null);
+
     const {
         register,
         handleSubmit,
@@ -48,10 +53,19 @@ function Categories() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["categories"] });
             reset();
+            setServerError(null);
+        },
+        onError: (error) => {
+            if (axios.isAxiosError(error) && error.response?.status === 409) {
+                setServerError("A category with this name already exists.");
+            } else {
+                setServerError("Something went wrong. Please try again.");
+            }
         },
     });
 
     const onSubmit = (values: CategoryFormValues) => {
+        setServerError(null);
         createMutation.mutate(values);
     };
 
@@ -96,6 +110,10 @@ function Categories() {
                     {createMutation.isPending ? "Adding..." : "Add"}
                 </button>
             </form>
+
+            {serverError && (
+                <p className="text-red-600 text-sm mt-2">{serverError}</p>
+            )}
 
             {data && data.length > 0 && (
                 <ul className="mt-4 space-y-2">
