@@ -3,6 +3,7 @@ from decimal import Decimal
 from typing import Optional
 
 from sqlmodel import Field, SQLModel
+from sqlalchemy import Column, ForeignKey, Integer
 
 
 class Transaction(SQLModel, table=True):
@@ -10,6 +11,14 @@ class Transaction(SQLModel, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="users.id", index=True)
+    category_id: Optional[int] = Field(
+    default=None,
+    sa_column=Column(
+        Integer,
+        ForeignKey("categories.id", ondelete="SET NULL"),
+        index=True,
+    ),
+)
 
     amount: Decimal = Field(max_digits=12, decimal_places=2)
     type: str = Field(max_length=10)
