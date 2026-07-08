@@ -47,3 +47,62 @@ def create_transaction(
     session.commit()
     session.refresh(transaction)
     return transaction
+
+@router.get("/", response_model=List[TransactionRead])
+def list_transactions(
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> List[Transaction]:
+    statement = (
+        select(Transaction)
+        .where(Transaction.user_id == current_user.id)
+        .order_by(Transaction.transaction_date.desc(), Transaction.id.desc())
+    )
+    transactions = session.exec(statement).all()
+    return transactions
+
+@router.get("/{transaction_id}", response_model=TransactionRead)
+def get_transaction(
+    transaction_id: int,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> Transaction:
+    transaction = session.get(Transaction, transaction_id)
+    if transaction is None or transaction.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Transaction not found",
+        )
+    return transaction
+
+@router.patch("/{transaction_id}", response_model=TransactionRead)
+def update_transaction(
+    transaction_id: int,
+    payload: TransactionUpdate,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> Transaction:
+    transaction = session.get(Transaction, transaction_id)
+    if transaction is None or transaction.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Transaction not found",
+        )
+
+    update_data = payload.model_dump(exclude_unset=True)
+
+    if "category_id" in update_data and update_data["category_id"] is not None:
+        category = session.get(Category, update_data["category_id"])
+        if category is None or category.user_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Category not found",
+            )
+
+    for field, value in update_data.items():
+        setattr(transaction, field, value)
+
+    session.add(transaction)
+    session.commit()
+    session.refresh(transaction)
+    return transaction
