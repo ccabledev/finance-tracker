@@ -1,5 +1,5 @@
 import { Routes, Route } from "react-router-dom";
-
+import Transactions from "./pages/Transactions";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
 import Home from "./pages/Home";
@@ -27,6 +27,14 @@ function App() {
         element={
           <ProtectedRoute>
             <Categories />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/transactions"
+        element={
+          <ProtectedRoute>
+            <Transactions />
           </ProtectedRoute>
         }
       />
