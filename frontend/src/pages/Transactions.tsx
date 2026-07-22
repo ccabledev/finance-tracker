@@ -15,6 +15,11 @@ type Transaction = {
     created_at: string;
 };
 
+type Category = {
+    id: number;
+    name: string;
+};
+
 export default function Transactions() {
     const { data: transactions, isLoading, isError } = useQuery<Transaction[]>({
         queryKey: ["transactions"],
@@ -24,7 +29,24 @@ export default function Transactions() {
         },
     });
 
+    const { data: categories } = useQuery<Category[]>({
+        queryKey: ["categories"],
+        queryFn: async () => {
+            const response = await api.get("/categories/");
+            return response.data;
+        },
+    });
+
     const [isModalOpen, setIsModalOpen] = useState(false);
+
+    const [amount, setAmount] = useState("");
+    const [transactionType, setTransactionType] = useState<"income" | "expense">("expense");
+    const [description, setDescription] = useState("");
+    const [transactionDate, setTransactionDate] = useState(
+        new Date().toISOString().slice(0, 10)
+    );
+    const [categoryId, setCategoryId] = useState<number | null>(null);
+    const [createError, setCreateError] = useState<string | null>(null);
 
     if (isLoading) return <p className="p-6">Loading…</p>;
     if (isError) return <p className="p-6 text-red-600">Failed to load transactions.</p>;
