@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import axios from "axios";
 import { api } from "../lib/api";
 import { formatCurrency } from "../utils/format";
 
@@ -34,6 +34,38 @@ export default function Transactions() {
         queryFn: async () => {
             const response = await api.get("/categories/");
             return response.data;
+        },
+    });
+
+    const queryClient = useQueryClient();
+
+    const createMutation = useMutation({
+        mutationFn: async () => {
+            const response = await api.post("/transactions/", {
+                amount,
+                type: transactionType,
+                description,
+                transaction_date: transactionDate,
+                category_id: categoryId,
+            });
+            return response.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["transactions"] });
+            setIsModalOpen(false);
+            setAmount("");
+            setTransactionType("expense");
+            setDescription("");
+            setTransactionDate(new Date().toISOString().slice(0, 10));
+            setCategoryId(null);
+            setCreateError(null);
+        },
+        onError: (error) => {
+            if (axios.isAxiosError(error) && error.response?.status === 422) {
+                setCreateError("Please check your inputs.");
+            } else {
+                setCreateError("Something went wrong. Please try again.");
+            }
         },
     });
 
@@ -101,13 +133,95 @@ export default function Transactions() {
                         onClick={(e) => e.stopPropagation()}
                     >
                         <h2 className="text-xl font-bold mb-4">New Transaction</h2>
-                        <p>Form will go here.</p>
-                        <button
-                            onClick={() => setIsModalOpen(false)}
-                            className="mt-4 text-gray-600 hover:text-gray-800"
+                        <form
+                            className="flex flex-col gap-3"
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                setCreateError(null);
+                                createMutation.mutate();
+                            }}
                         >
-                            Cancel
-                        </button>
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Amount</label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    value={amount}
+                                    onChange={(e) => setAmount(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Type</label>
+                                <select
+                                    value={transactionType}
+                                    onChange={(e) => setTransactionType(e.target.value as "income" | "expense")}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="expense">Expense</option>
+                                    <option value="income">Income</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Description</label>
+                                <input
+                                    type="text"
+                                    value={description}
+                                    onChange={(e) => setDescription(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Date</label>
+                                <input
+                                    type="date"
+                                    value={transactionDate}
+                                    onChange={(e) => setTransactionDate(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Category</label>
+                                <select
+                                    value={categoryId ?? ""}
+                                    onChange={(e) =>
+                                        setCategoryId(e.target.value === "" ? null : Number(e.target.value))
+                                    }
+                                    className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="">(No category)</option>
+                                    {categories?.map((category) => (
+                                        <option key={category.id} value={category.id}>
+                                            {category.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {createError && (
+                                <p className="text-red-600 text-sm">{createError}</p>
+                            )}
+
+                            <div className="flex justify-end gap-2 mt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsModalOpen(false)}
+                                    className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                                >
+                                    Create
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}
