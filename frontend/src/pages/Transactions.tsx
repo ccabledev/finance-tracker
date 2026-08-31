@@ -78,8 +78,38 @@ export default function Transactions() {
         },
     });
 
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const updateMutation = useMutation({
+        mutationFn: async (transactionId: number) => {
+            const response = await api.patch(`/transactions/${transactionId}`, {
+                amount,
+                type: transactionType,
+                description,
+                transaction_date: transactionDate,
+                category_id: categoryId,
+            });
+            return response.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["transactions"] });
+            setIsModalOpen(false);
+            setEditingTransactionId(null);
+            setAmount("");
+            setTransactionType("expense");
+            setDescription("");
+            setTransactionDate(new Date().toISOString().slice(0, 10));
+            setCategoryId(null);
+            setCreateError(null);
+        },
+        onError: (error) => {
+            if (axios.isAxiosError(error) && error.response?.status === 422) {
+                setCreateError("Please check your inputs.");
+            } else {
+                setCreateError("Something went wrong. Please try again.");
+            }
+        },
+    });
 
+    const [isModalOpen, setIsModalOpen] = useState(false);
     const [amount, setAmount] = useState("");
     const [transactionType, setTransactionType] = useState<"income" | "expense">("expense");
     const [description, setDescription] = useState("");
@@ -88,6 +118,7 @@ export default function Transactions() {
     );
     const [categoryId, setCategoryId] = useState<number | null>(null);
     const [createError, setCreateError] = useState<string | null>(null);
+    const [editingTransactionId, setEditingTransactionId] = useState<number | null>(null);
 
     if (isLoading) return <p className="p-6">Loading…</p>;
     if (isError) return <p className="p-6 text-red-600">Failed to load transactions.</p>;
@@ -131,6 +162,21 @@ export default function Transactions() {
                                 </p>
                                 <button
                                     onClick={() => {
+                                        setEditingTransactionId(transaction.id);
+                                        setAmount(transaction.amount);
+                                        setTransactionType(transaction.type);
+                                        setDescription(transaction.description);
+                                        setTransactionDate(transaction.transaction_date);
+                                        setCategoryId(transaction.category_id);
+                                        setCreateError(null);
+                                        setIsModalOpen(true);
+                                    }}
+                                    className="text-blue-600 hover:text-blue-800 text-sm"
+                                >
+                                    Edit
+                                </button>
+                                <button
+                                    onClick={() => {
                                         if (window.confirm(`Delete "${transaction.description}"?`)) {
                                             deleteMutation.mutate(transaction.id);
                                         }
@@ -147,19 +193,34 @@ export default function Transactions() {
             {isModalOpen && (
                 <div
                     className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-                    onClick={() => setIsModalOpen(false)}
+                    onClick={() => {
+                        setIsModalOpen(false);
+                        setEditingTransactionId(null);
+                        setAmount("");
+                        setTransactionType("expense");
+                        setDescription("");
+                        setTransactionDate(new Date().toISOString().slice(0, 10));
+                        setCategoryId(null);
+                        setCreateError(null);
+                    }}
                 >
                     <div
                         className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <h2 className="text-xl font-bold mb-4">New Transaction</h2>
+                        <h2 className="text-xl font-bold mb-4">
+                            {editingTransactionId !== null ? "Edit Transaction" : "New Transaction"}
+                        </h2>
                         <form
                             className="flex flex-col gap-3"
                             onSubmit={(e) => {
                                 e.preventDefault();
                                 setCreateError(null);
-                                createMutation.mutate();
+                                if (editingTransactionId !== null) {
+                                    updateMutation.mutate(editingTransactionId);
+                                } else {
+                                    createMutation.mutate();
+                                }
                             }}
                         >
                             <div>
@@ -230,7 +291,16 @@ export default function Transactions() {
                             <div className="flex justify-end gap-2 mt-2">
                                 <button
                                     type="button"
-                                    onClick={() => setIsModalOpen(false)}
+                                    onClick={() => {
+                                        setIsModalOpen(false);
+                                        setEditingTransactionId(null);
+                                        setAmount("");
+                                        setTransactionType("expense");
+                                        setDescription("");
+                                        setTransactionDate(new Date().toISOString().slice(0, 10));
+                                        setCategoryId(null);
+                                        setCreateError(null);
+                                    }}
                                     className="px-4 py-2 text-gray-600 hover:text-gray-800"
                                 >
                                     Cancel
@@ -239,7 +309,7 @@ export default function Transactions() {
                                     type="submit"
                                     className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                                 >
-                                    Create
+                                    {editingTransactionId !== null ? "Save" : "Create"}
                                 </button>
                             </div>
                         </form>
