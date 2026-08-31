@@ -69,6 +69,15 @@ export default function Transactions() {
         },
     });
 
+    const deleteMutation = useMutation({
+        mutationFn: async (transactionId: number) => {
+            await api.delete(`/transactions/${transactionId}`);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["transactions"] });
+        },
+    });
+
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     const [amount, setAmount] = useState("");
@@ -110,15 +119,27 @@ export default function Transactions() {
                                     {transaction.transaction_date}
                                 </p>
                             </div>
-                            <p
-                                className={
-                                    transaction.type === "expense"
-                                        ? "text-red-600 font-semibold"
-                                        : "text-green-600 font-semibold"
-                                }
-                            >
-                                {formatCurrency(transaction.amount, transaction.type)}
-                            </p>
+                            <div className="flex items-center gap-4">
+                                <p
+                                    className={
+                                        transaction.type === "expense"
+                                            ? "text-red-600 font-semibold"
+                                            : "text-green-600 font-semibold"
+                                    }
+                                >
+                                    {formatCurrency(transaction.amount, transaction.type)}
+                                </p>
+                                <button
+                                    onClick={() => {
+                                        if (window.confirm(`Delete "${transaction.description}"?`)) {
+                                            deleteMutation.mutate(transaction.id);
+                                        }
+                                    }}
+                                    className="text-red-600 hover:text-red-800 text-sm"
+                                >
+                                    Delete
+                                </button>
+                            </div>
                         </li>
                     ))}
                 </ul>
